@@ -1,0 +1,45 @@
+{
+ "created": "2026-11-12T09:48:07+00:00",
+ "seed": 20261112,
+ "translated": true,
+ "translator": "qwen3.5-9b",
+ "counts": {
+  "eval": 2040,
+  "dev": 180,
+  "contrast_en": 128,
+  "contrast_multi": 128
+ },
+ "stages": [
+  {
+   "name": "JSONLReader",
+   "in": 2476,
+   "out": 2476,
+   "rejected": 0
+  },
+  {
+   "name": "SchemaGate",
+   "in": 2476,
+   "out": 2476,
+   "rejected": 0
+  },
+  {
+   "name": "ExactDeduplicator",
+   "in": 2476,
+   "out": 2476,
+   "rejected": 0
+  },
+  {
+   "name": "MinHashDeduplicator",
+   "in": 2476,
+   "out": 2476,
+   "rejected": 0
+  }
+ ],
+ "dropped_by_curatorkit": [],
+ "back_translation_sample_size": 66,
+ "sources": {
+  "polyguard": "ToxicityPrompts/PolyGuardPrompts (test)",
+  "multijail": "DAMO-NLP-SG/MultiJail (train)",
+  "xstest": "Paul/XSTest (train, safe only)"
+ }
+}
