@@ -1,0 +1,37 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ayasteer"
+version = "0.1.0"
+description = "Multilingual refusal-direction steering on Cohere Tiny Aya (Lexsi AI Safety & Alignment Hackathon 2026)"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.optional-dependencies]
+local = [
+    "curatorkit[connectors]>=0.1.27",
+    "auditkit>=1.1.10",
+    "huggingface_hub>=0.25",
+    "datasets>=3.0",
+    "pandas>=2.0",
+    "matplotlib>=3.8",
+    "pytest>=8",
+]
+gpu = [
+    "safetune>=0.1.16",
+    "auditkit>=1.1.10",
+    "transformers>=5.15,<6",
+    "accelerate>=1.0",
+    "safetensors",
+    "huggingface_hub>=0.25",
+    "datasets>=3.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["ayasteer"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
