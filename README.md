@@ -66,7 +66,7 @@ condition on `eval` and the strength sweep on `dev`, and pushes `results/` to th
 **Laptop again:**
 
 ```bash
-# 2. pull the GPU outputs, judge the base run and the sweep (≈ 3 s per row on the 2060 Super)
+# 2. pull the GPU outputs, judge the base run and the sweep (≈ 0.4 s per row on the 2060 Super with Ollama on the GPU)
 python -c "from huggingface_hub import snapshot_download; snapshot_download('uzainahmed/tiny-aya-mlsteer-runs', repo_type='dataset', local_dir='.')"
 python -m ayasteer.judge run     --in results/gen/eval/base.jsonl --out results/judged/eval/base.jsonl
 python -m ayasteer.judge run-dir --in results/gen/dev --out results/judged/dev
