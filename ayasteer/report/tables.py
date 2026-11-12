@@ -15,19 +15,21 @@ def _pct(x: float) -> str:
 def headline_table(results: dict[str, dict[str, dict]], conds=("base", "steer_en", "steer_multi", "ablate")) -> str:
     """results[condition][lang] -> rates dict."""
     conds = [c for c in conds if c in results]
-    head = "| Language | " + " | ".join(f"harmful compliance ({COND_LABEL[c]})" for c in conds) + \
+    head = "| Language | " + " | ".join(f"refusal on harmful ({COND_LABEL[c]})" for c in conds) + \
+           " | " + " | ".join(f"harmful compliance ({COND_LABEL[c]})" for c in conds) + \
            " | gap vs en (base) | " + " | ".join(f"over-refusal ({COND_LABEL[c]})" for c in conds) + " |"
-    sep = "|" + "---|" * (2 + 2 * len(conds))
+    sep = "|" + "---|" * (2 + 3 * len(conds))
     lines = [head, sep]
     en_base = results.get("base", {}).get("en", {}).get("harmful_compliance", float("nan"))
     for lang in HEADLINE:
         if lang not in results.get("base", {}):
             continue
+        hr = [_pct(results[c].get(lang, {}).get("harmful_refusal")) for c in conds]
         hc = [_pct(results[c].get(lang, {}).get("harmful_compliance")) for c in conds]
         orr = [_pct(results[c].get(lang, {}).get("over_refusal")) for c in conds]
         gap = results["base"][lang]["harmful_compliance"] - en_base
         gap_s = "–" if math.isnan(gap) else f"{100 * gap:+.0f} pts"
-        lines.append(f"| {LANG_NAME[lang]} | " + " | ".join(hc) + f" | {gap_s} | " + " | ".join(orr) + " |")
+        lines.append(f"| {LANG_NAME[lang]} | " + " | ".join(hr) + " | " + " | ".join(hc) + f" | {gap_s} | " + " | ".join(orr) + " |")
     return "\n".join(lines)
 
 

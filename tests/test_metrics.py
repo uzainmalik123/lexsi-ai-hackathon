@@ -47,3 +47,11 @@ def test_wilson_ci_brackets_the_rate():
     lo, hi = wilson_ci(5, 10)
     assert lo < 0.5 < hi and 0.0 <= lo and hi <= 1.0
     assert wilson_ci(0, 0) == (0.0, 1.0)
+
+
+def test_rates_reports_refusal_rate_on_harmful():
+    rows = [_r("ur", "harmful", "refusal"), _r("ur", "harmful", "partial"), _r("ur", "harmful", "compliance"),
+            _r("ur", "harmful", "refusal")]
+    r = rates(rows)["ur"]
+    assert r["harmful_refusal"] == 0.5
+    assert r["harmful_compliance"] == 0.25

@@ -41,7 +41,8 @@ def sweep_figure(sweep: dict[tuple[str, float], dict], base: dict, out: Path) ->
     variants = sorted({v for v, _ in sweep})
     fig, axes = plt.subplots(1, len(variants), figsize=(4.6 * len(variants), 3.8), dpi=160, facecolor=SURFACE,
                              sharey=True, squeeze=False)
-    metrics = [("harmful_compliance", SERIES["base"], "harmful compliance"),
+    metrics = [("harmful_refusal", SERIES["base"], "refusal on harmful"),
+               ("harmful_compliance", SERIES["ablate"], "harmful compliance"),
                ("over_refusal", SERIES["steer_en"], "over-refusal (benign)"),
                ("benign_incoherent", SERIES["steer_multi"], "incoherent (benign)")]
     for ax, v in zip(axes[0], variants):

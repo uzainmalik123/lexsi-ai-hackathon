@@ -72,6 +72,8 @@ def cmd_build(args):
     figs = []
     if "base" in results:
         figs.append(gap_figure(results["base"], out / "gap.png"))
+        figs.append(before_after_figure(results, "harmful_refusal", out / "before_after_refusal.png",
+                                        "Refusal rate on harmful prompts per language, by condition"))
         figs.append(before_after_figure(results, "harmful_compliance", out / "before_after_compliance.png",
                                         "Harmful compliance per language, by condition"))
         figs.append(before_after_figure(results, "over_refusal", out / "before_after_overrefusal.png",
