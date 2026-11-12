@@ -5,7 +5,7 @@ from pathlib import Path
 
 import torch
 
-from ayasteer.gpu.direction_meta import TENSOR_NAME, load_meta, save_meta
+from ayasteer.gpu.direction_meta import TENSOR_NAME, load_meta, resolve_pick_layer, save_meta
 
 DEFAULT_PICK_LAYER = 24  # SafeTune docs: the unguarded sweep misfires on Tiny Aya; ~24 of 36 works
 
@@ -17,6 +17,8 @@ def extract(model, tok, contrast_rows: list[dict], pick_layer: int | None = DEFA
 
     harmful = [r["prompt"] for r in contrast_rows if r["label"] == "harmful"]
     harmless = [r["prompt"] for r in contrast_rows if r["label"] == "benign"]
+    n_layers = int(getattr(model.config, "num_hidden_layers", 0) or 0)
+    pick_layer = resolve_pick_layer(pick_layer, n_layers) if n_layers else pick_layer
     cfg = RefusalDirectionConfig(pick_layer=pick_layer)
     direction, layer, _ = extract_refusal_direction(model, tok, harmful, harmless, cfg)
     meta = {
@@ -26,6 +28,7 @@ def extract(model, tok, contrast_rows: list[dict], pick_layer: int | None = DEFA
         "pool_method": cfg.pool_method,
         "sweep_used": pick_layer is None,
         "hidden_dim": int(direction.shape[0]),
+        "n_layers": n_layers,
     }
     return direction.detach().float().cpu(), int(layer), meta
 

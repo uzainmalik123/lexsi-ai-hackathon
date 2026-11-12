@@ -34,3 +34,12 @@ def save_meta(meta: dict, out_dir: Path, *, model_id: str, contrast_rows: list[d
 
 def load_meta(dir: Path) -> dict:
     return json.loads((Path(dir) / CONFIG_NAME).read_text(encoding="utf-8"))
+
+
+def resolve_pick_layer(pick_layer: int | None, n_layers: int) -> int | None:
+    """``None`` keeps SafeTune's sweep; ``-1`` or an out-of-range layer becomes two thirds of depth."""
+    if pick_layer is None:
+        return None
+    if pick_layer < 0 or pick_layer >= n_layers:
+        return max(1, round(n_layers * 2 / 3))
+    return pick_layer

@@ -19,3 +19,11 @@ def test_contrast_sha_is_order_and_content_sensitive():
     a = [{"id": "a", "prompt": "x"}, {"id": "b", "prompt": "y"}]
     assert contrast_sha256(a) != contrast_sha256(list(reversed(a)))
     assert contrast_sha256(a) != contrast_sha256([{"id": "a", "prompt": "x"}, {"id": "b", "prompt": "z"}])
+
+
+def test_resolve_pick_layer_scales_with_depth():
+    from ayasteer.gpu.direction_meta import resolve_pick_layer
+    assert resolve_pick_layer(24, 36) == 24          # Tiny Aya: explicit layer within range
+    assert resolve_pick_layer(24, 24) == 16          # too deep for a 24-layer model -> two thirds
+    assert resolve_pick_layer(None, 36) is None      # None means run SafeTune's sweep
+    assert resolve_pick_layer(-1, 36) == 24          # -1 means two thirds of depth
