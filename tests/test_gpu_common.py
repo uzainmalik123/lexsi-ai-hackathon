@@ -30,3 +30,12 @@ def test_pending_rows_skips_written_ids(tmp_path: Path):
 
 def test_conditions_fixed():
     assert CONDITIONS == ("base", "steer_en", "steer_multi", "ablate")
+
+
+def test_balanced_limit_takes_half_of_each_label():
+    from ayasteer.gpu.common import balanced_limit
+    rows = [{"id": f"h{i}", "label": "harmful"} for i in range(5)] + [{"id": f"b{i}", "label": "benign"} for i in range(5)]
+    out = balanced_limit(rows, 4)
+    assert [r["label"] for r in out] == ["harmful", "harmful", "benign", "benign"]
+    assert balanced_limit(rows, 0) == rows
+    assert len(balanced_limit(rows, 7)) == 7

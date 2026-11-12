@@ -15,6 +15,7 @@ import logging
 import os
 from pathlib import Path
 
+from ayasteer.gpu.common import balanced_limit
 from ayasteer.schema import read_jsonl
 
 log = logging.getLogger("ayasteer.gpu")
@@ -29,9 +30,7 @@ def cmd_direction(args: argparse.Namespace) -> None:
     from ayasteer.gpu.direction import extract, save_direction
     from ayasteer.gpu.model import load_tiny_aya
 
-    rows = read_jsonl(BENCH / f"contrast_{args.variant}.jsonl")
-    if args.limit:
-        rows = rows[: args.limit]
+    rows = balanced_limit(read_jsonl(BENCH / f"contrast_{args.variant}.jsonl"), args.limit)
     model, tok = load_tiny_aya(args.model)
     direction, layer, meta = extract(model, tok, rows, pick_layer=None if args.sweep else args.pick_layer)
     save_direction(direction, meta, Path(args.out), model_id=args.model, contrast_rows=rows, variant=args.variant)
@@ -42,9 +41,7 @@ def cmd_generate(args: argparse.Namespace) -> None:
     from ayasteer.gpu.generate import run_condition
     from ayasteer.gpu.model import load_tiny_aya
 
-    rows = read_jsonl(BENCH / f"{args.split}.jsonl")
-    if args.limit:
-        rows = rows[: args.limit]
+    rows = balanced_limit(read_jsonl(BENCH / f"{args.split}.jsonl"), args.limit)
     model, tok = load_tiny_aya(args.model)
     direction = None
     if args.condition != "base":
@@ -60,9 +57,7 @@ def cmd_sweep(args: argparse.Namespace) -> None:
     from ayasteer.gpu.generate import run_condition
     from ayasteer.gpu.model import load_tiny_aya
 
-    rows = read_jsonl(BENCH / f"{args.split}.jsonl")
-    if args.limit:
-        rows = rows[: args.limit]
+    rows = balanced_limit(read_jsonl(BENCH / f"{args.split}.jsonl"), args.limit)
     model, tok = load_tiny_aya(args.model)
     out_dir = Path(args.out_dir) / args.split
     print(json.dumps(run_condition(model, tok, rows, "base", 0.0, None, out_dir / "base.jsonl",

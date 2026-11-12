@@ -25,3 +25,13 @@ def make_result_row(row: dict, condition: str, strength: float, output: str, fin
 def pending_rows(rows: list[dict], out_path: Path) -> list[dict]:
     done = {(r["id"], r["language"]) for r in read_jsonl(Path(out_path))}
     return [r for r in rows if (r["id"], r["language"]) not in done]
+
+
+def balanced_limit(rows: list[dict], n: int) -> list[dict]:
+    """First ``n`` rows with the labels balanced (harmful first), or all rows when ``n`` is 0."""
+    if not n:
+        return rows
+    harmful = [r for r in rows if r["label"] == "harmful"]
+    benign = [r for r in rows if r["label"] != "harmful"]
+    k = n // 2
+    return harmful[: n - k] + benign[:k]
