@@ -27,12 +27,17 @@ def run_condition(model, tok, rows: list[dict], condition: str, strength: float,
     mode = MODE_FOR_CONDITION[condition]
     t0 = time.time()
     n_tokens = 0
+    n_batches = (len(todo) + batch_size - 1) // batch_size
     with ctx_fn(model, direction, mode, strength):
-        for batch in batched(todo, batch_size):
+        for i, batch in enumerate(batched(todo, batch_size), start=1):
             outs = gen_fn(model, tok, [r["prompt"] for r in batch], max_new_tokens=max_new_tokens)
             n_tokens += sum(len(tok(text, add_special_tokens=False)["input_ids"]) for text, _ in outs)
             append_jsonl(out_path, (make_result_row(r, condition, strength, text, reason)
                                     for r, (text, reason) in zip(batch, outs)))
+            if i % 10 == 0 or i == n_batches:
+                elapsed = time.time() - t0
+                log.info("  batch %d/%d, %.0fs elapsed, ~%.0fs left", i, n_batches, elapsed,
+                         elapsed / i * (n_batches - i))
     seconds = time.time() - t0
     stats = {
         "condition": condition, "strength": strength, "n": len(todo), "n_total": len(rows),

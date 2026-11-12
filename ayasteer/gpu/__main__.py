@@ -15,6 +15,8 @@ import logging
 import os
 from pathlib import Path
 
+os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")  # before torch is imported
+
 from ayasteer.gpu.common import balanced_limit
 from ayasteer.schema import read_jsonl
 
