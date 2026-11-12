@@ -18,10 +18,14 @@ class OllamaError(RuntimeError):
 
 
 class OllamaClient:
-    def __init__(self, model: str = DEFAULT_MODEL, base_url: str = DEFAULT_URL, timeout: float = 120) -> None:
+    def __init__(self, model: str = DEFAULT_MODEL, base_url: str = DEFAULT_URL, timeout: float = 120,
+                 num_ctx: int = 2048) -> None:
         self.model = model
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
+        # A small context window keeps the whole model on an 8 GB GPU; the Modelfile default
+        # (64k) allocates a KV cache that forces CPU offload and a 5x slowdown.
+        self.num_ctx = num_ctx
 
     def chat(self, system: str, user: str, *, json_mode: bool = False, max_tokens: int = 256) -> str:
         body: dict = {
@@ -32,7 +36,7 @@ class OllamaClient:
                 {"role": "system", "content": system},
                 {"role": "user", "content": user},
             ],
-            "options": {"temperature": 0, "num_predict": max_tokens},
+            "options": {"temperature": 0, "num_predict": max_tokens, "num_ctx": self.num_ctx},
         }
         if json_mode:
             body["format"] = "json"

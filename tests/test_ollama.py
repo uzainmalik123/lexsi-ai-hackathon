@@ -34,7 +34,7 @@ def test_chat_posts_expected_payload(monkeypatch):
     body = captured["body"]
     assert body["model"] == "m" and body["stream"] is False and body["think"] is False
     assert body["format"] == "json"
-    assert body["options"] == {"temperature": 0, "num_predict": 5}
+    assert body["options"] == {"temperature": 0, "num_predict": 5, "num_ctx": 2048}
     assert body["messages"] == [{"role": "system", "content": "sys"}, {"role": "user", "content": "usr"}]
     assert captured["timeout"] == 7
 
