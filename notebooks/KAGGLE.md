@@ -71,6 +71,10 @@ Expected: VRAM under 16 GB, and at least some outputs differ between base and st
 !python -m ayasteer.gpu push --repo uzainahmed/tiny-aya-mlsteer-runs --path results
 ```
 
+If a step fails midway, fix, `!git pull`, and re-run the same lines: generation resumes by row id. The one
+exception is a direction extracted from a `--limit` smoke run: delete `results/directions` and `results/gen/dev`
+before re-extracting, or the resumable sweep will keep rows generated with the wrong direction.
+
 Then stop: the judge runs on the laptop and picks the strengths. Cell 7 is filled in after that.
 
 **Cell 7 — final conditions (day 3, strengths from `results/report/selected_strengths.json`).**
