@@ -45,12 +45,16 @@ Expected: 8 rows in `/tmp/g.jsonl`, each with `finish_reason`, and `tokens_per_s
 !python -m ayasteer.gpu direction --variant en --out results/directions/en --limit 16
 !python -m ayasteer.gpu generate --split dev --condition base --out /tmp/base16.jsonl --limit 16
 !python -m ayasteer.gpu generate --split dev --condition steer_en --strength 1 --direction results/directions/en --out /tmp/steer16.jsonl --limit 16
-!python - <<'EOF'
+```
+
+Then, in a separate cell (plain Python, not a shell command):
+
+```python
 import json
 b=[json.loads(l) for l in open('/tmp/base16.jsonl')]; s=[json.loads(l) for l in open('/tmp/steer16.jsonl')]
 print('changed outputs:', sum(x['output']!=y['output'] for x,y in zip(b,s)), 'of', len(b))
-for x,y in list(zip(b,s))[:2]: print('\n[',x['language'],x['label'],']', x['prompt'][:80], '\n  base :', x['output'][:160].replace('\n',' '), '\n  steer:', y['output'][:160].replace('\n',' '))
-EOF
+for x,y in list(zip(b,s))[:2]:
+    print('\n[',x['language'],x['label'],']', x['prompt'][:80], '\n  base :', x['output'][:160].replace('\n',' '), '\n  steer:', y['output'][:160].replace('\n',' '))
 ```
 
 Expected: VRAM under 16 GB, and at least some outputs differ between base and steered.
