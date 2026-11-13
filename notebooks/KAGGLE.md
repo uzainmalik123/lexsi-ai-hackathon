@@ -98,7 +98,7 @@ Then stop: the judge runs on the laptop and picks the strengths. Cell 7 is fille
 **Cell 7 — final conditions (day 3, strengths from `results/report/selected_strengths.json`).**
 
 ```python
-S_EN, S_MULTI = 2.0, 2.0   # replace with the selected values
+S_EN, S_MULTI = 0.2, 0.1   # selected on the dev split (results/report/selected_strengths.json)
 !python -m ayasteer.gpu generate --split eval --condition steer_en    --strength {S_EN}    --direction results/directions/en    --out results/gen/eval/steer_en.jsonl
 !python -m ayasteer.gpu generate --split eval --condition steer_multi --strength {S_MULTI} --direction results/directions/multi --out results/gen/eval/steer_multi.jsonl
 !python -m ayasteer.gpu generate --split eval --condition ablate      --strength 1.0       --direction results/directions/en    --out results/gen/eval/ablate.jsonl
