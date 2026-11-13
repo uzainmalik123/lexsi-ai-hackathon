@@ -22,6 +22,22 @@ from ayasteer.schema import read_jsonl
 
 log = logging.getLogger("ayasteer.gpu")
 BENCH = Path("data/benchmark")
+RUNS_REPO = os.environ.get("AYASTEER_RUNS_REPO", "uzainahmed/tiny-aya-mlsteer-runs")
+
+
+def ensure_restored() -> None:
+    """A fresh Kaggle session starts with an empty results/. Pull the directions and finished
+    generations back from the HF runs repo so resumable commands skip work already done."""
+    if (Path("results/directions/en/steering_config.json").exists()
+            and Path("results/directions/multi/steering_config.json").exists()):
+        return
+    from huggingface_hub import snapshot_download
+    log.info("results/directions missing; restoring from %s", RUNS_REPO)
+    try:
+        snapshot_download(RUNS_REPO, repo_type="dataset", local_dir=".",
+                          allow_patterns=["results/directions/*", "results/gen/*"])
+    except Exception as exc:  # noqa: BLE001
+        log.warning("restore from %s failed: %s", RUNS_REPO, exc)
 
 
 def _add_model_arg(p: argparse.ArgumentParser) -> None:
@@ -40,6 +56,7 @@ def cmd_direction(args: argparse.Namespace) -> None:
 
 
 def cmd_generate(args: argparse.Namespace) -> None:
+    ensure_restored()
     from ayasteer.gpu.generate import run_condition
     from ayasteer.gpu.model import load_tiny_aya
 
@@ -55,6 +72,7 @@ def cmd_generate(args: argparse.Namespace) -> None:
 
 
 def cmd_sweep(args: argparse.Namespace) -> None:
+    ensure_restored()
     from ayasteer.gpu.direction import load_direction
     from ayasteer.gpu.generate import run_condition
     from ayasteer.gpu.model import load_tiny_aya
@@ -82,6 +100,7 @@ def _parse_conditions(spec: str) -> list[tuple[str, float]]:
 
 
 def cmd_capability(args: argparse.Namespace) -> None:
+    ensure_restored()
     from ayasteer.gpu.capability import run_capability
     from ayasteer.gpu.direction import load_direction
     from ayasteer.gpu.model import load_tiny_aya
@@ -97,6 +116,7 @@ def cmd_capability(args: argparse.Namespace) -> None:
 
 
 def cmd_redteam(args: argparse.Namespace) -> None:
+    ensure_restored()
     from ayasteer.gpu.direction import load_direction
     from ayasteer.gpu.model import load_tiny_aya
     from ayasteer.gpu.redteam import run_redteam
