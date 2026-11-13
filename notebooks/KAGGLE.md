@@ -75,6 +75,16 @@ If a step fails midway, fix, `!git pull`, and re-run the same lines: generation 
 exception is a direction extracted from a `--limit` smoke run: delete `results/directions` and `results/gen/dev`
 before re-extracting, or the resumable sweep will keep rows generated with the wrong direction.
 
+**Restore cell — run first in any new Kaggle session after cell 6.** A new session starts with an empty
+`results/`; this pulls the directions and finished generations back from Hugging Face so nothing is redone.
+
+```python
+from huggingface_hub import snapshot_download
+snapshot_download('uzainahmed/tiny-aya-mlsteer-runs', repo_type='dataset', local_dir='.',
+                  allow_patterns=['results/directions/*', 'results/gen/*', 'results/report/selected_strengths.json'])
+!ls results/directions/en results/directions/multi
+```
+
 **Cell 6b — finer sweep at low strengths.** The first sweep showed strength 1 already refuses almost every benign
 prompt, so the useful range is below 0.5. Resumable: existing files are skipped.
 
