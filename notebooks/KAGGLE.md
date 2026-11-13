@@ -75,6 +75,14 @@ If a step fails midway, fix, `!git pull`, and re-run the same lines: generation 
 exception is a direction extracted from a `--limit` smoke run: delete `results/directions` and `results/gen/dev`
 before re-extracting, or the resumable sweep will keep rows generated with the wrong direction.
 
+**Cell 6b — finer sweep at low strengths.** The first sweep showed strength 1 already refuses almost every benign
+prompt, so the useful range is below 0.5. Resumable: existing files are skipped.
+
+```python
+!python -m ayasteer.gpu sweep --split dev --variants en,multi --strengths 0.1,0.2,0.3
+!python -m ayasteer.gpu push --repo uzainahmed/tiny-aya-mlsteer-runs --path results
+```
+
 Then stop: the judge runs on the laptop and picks the strengths. Cell 7 is filled in after that.
 
 **Cell 7 — final conditions (day 3, strengths from `results/report/selected_strengths.json`).**
