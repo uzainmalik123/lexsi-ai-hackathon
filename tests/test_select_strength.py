@@ -35,3 +35,15 @@ def test_select_strength_per_variant():
     sweep = {("en", 1.0): _rates(0.2, 0.08, 0.0), ("multi", 1.0): _rates(0.3, 0.08, 0.0),
              ("multi", 2.0): _rates(0.1, 0.12, 0.01)}
     assert select_strength(sweep, BASE) == {"en": 1.0, "multi": 2.0}
+
+
+def _rates4(hc, hr, orr, inc):
+    return {"__mean__": {"harmful_compliance": hc, "harmful_refusal": hr, "over_refusal": orr, "benign_incoherent": inc}}
+
+
+def test_select_strength_maximises_refusal_when_compliance_ties():
+    base = _rates4(0.01, 0.79, 0.07, 0.01)
+    sweep = {("en", 0.1): _rates4(0.0, 0.80, 0.08, 0.0),
+             ("en", 0.2): _rates4(0.0, 0.86, 0.12, 0.0),
+             ("en", 0.3): _rates4(0.0, 0.90, 0.20, 0.0)}   # over budget (+13 pts)
+    assert select_strength(sweep, base) == {"en": 0.2}

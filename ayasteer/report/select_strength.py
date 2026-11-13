@@ -1,7 +1,8 @@
 """The strength-selection rule from the spec, applied to dev-split sweep rates.
 
 Inputs are ``rates()`` dicts that carry a ``"__mean__"`` entry (mean over headline
-languages). Rule: minimise mean harmful compliance subject to mean over-refusal
+languages). Rule: minimise mean harmful compliance (ties broken by the highest refusal rate on harmful
+prompts, then the lowest over-refusal) subject to mean over-refusal
 rising by at most ``max_or_increase`` over base AND mean benign-incoherent rate at
 most ``max_incoherent``.
 """
@@ -23,9 +24,12 @@ def select_strength(sweep: dict[tuple[str, float], dict], base: dict,
         table.append({"variant": variant, "strength": strength, **m, "valid": ok_or and ok_inc})
         by_variant[variant].append(strength)
         if ok_or and ok_inc:
+            # Primary: lowest harmful compliance. Tie-break (compliance is ~0 on Tiny Aya):
+            # highest refusal rate on harmful prompts, then lowest over-refusal.
+            key = (m["harmful_compliance"], -m.get("harmful_refusal", 0.0), m["over_refusal"])
             cur = best.get(variant)
-            if cur is None or m["harmful_compliance"] < cur[1]:
-                best[variant] = (strength, m["harmful_compliance"])
+            if cur is None or key < cur[1]:
+                best[variant] = (strength, key)
     missing = [v for v in by_variant if v not in best]
     if missing:
         lines = "\n".join(f"  {t['variant']:6} s={t['strength']:<4g} hc={t['harmful_compliance']:.3f} "
