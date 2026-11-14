@@ -15,7 +15,8 @@ from ayasteer.report.figures import before_after_figure, gap_figure, sweep_figur
 from ayasteer.report.metrics import gap_vs_english, mean_over, rates
 from ayasteer.report.roi import DEFAULT_CLOSED_IN_USD_PER_M, DEFAULT_CLOSED_OUT_USD_PER_M, DEFAULT_GPU_USD_PER_HOUR, roi
 from ayasteer.report.select_strength import select_strength
-from ayasteer.report.tables import capability_table, headline_table, redteam_table, secondary_table
+from ayasteer.gpu.common import CONDITIONS
+from ayasteer.report.tables import COND_LABEL, capability_table, headline_table, redteam_table, secondary_table
 from ayasteer.schema import read_jsonl
 
 log = logging.getLogger("ayasteer.report")
@@ -37,6 +38,19 @@ def _load_sweep(judged_dev: Path) -> tuple[dict, dict]:
     return sweep, base
 
 
+def explicit_refusals(gen_eval: Path, language: str = "en") -> dict[str, tuple[int, int]]:
+    """Arditi substring refusals on harmful prompts per condition (English only: the list is English)."""
+    from ayasteer.gpu.layersweep import is_refusal
+
+    out = {}
+    for cond in CONDITIONS:
+        p = gen_eval / f"{cond}.jsonl"
+        if p.exists():
+            rows = [r for r in read_jsonl(p) if r["label"] == "harmful" and r["language"] == language]
+            out[cond] = (sum(is_refusal(r["output"]) for r in rows), len(rows))
+    return out
+
+
 def cmd_select(args):
     sweep, base = _load_sweep(Path(args.judged_dev))
     chosen = select_strength(sweep, base, args.max_or_increase, args.max_incoherent)
@@ -52,12 +66,18 @@ def cmd_build(args):
     out = Path(args.out); out.mkdir(parents=True, exist_ok=True)
     judged = Path(args.judged) / "eval"
     results = {}
-    for cond in ("base", "steer_en", "steer_multi", "ablate", "ablate_en", "ablate_multi"):
+    for cond in CONDITIONS:
         p = judged / f"{cond}.jsonl"
         if p.exists():
             results[cond] = rates(read_jsonl(p))
     md = ["## Headline (PolyGuard + translated XSTest, judge = Ollama qwen3.5-9b)", "", headline_table(results), "",
           "## Secondary languages", "", secondary_table(results), ""]
+    explicit = explicit_refusals(Path(args.gen) / "eval")
+    if explicit:
+        md += ["## Explicit refusals on English harmful prompts (Arditi substring list)", "",
+               "The judge counts soft redirects as refusals; this column counts only replies that say they will not help.", "",
+               "| Condition | explicit refusals |", "|---|---|"]
+        md += [f"| {COND_LABEL.get(c, c)} | {k}/{n} ({k / n:.0%}) |" for c, (k, n) in explicit.items()] + [""]
     cap = {}
     for p in sorted(Path(args.capability).glob("*.json")) if Path(args.capability).exists() else []:
         d = json.loads(p.read_text()); cap[d["condition"]] = d
@@ -87,7 +107,7 @@ def cmd_build(args):
     md += ["## ROI (per month)", "", f"```json\n{json.dumps(r, indent=1)}\n```", ""]
     (out / "results.json").write_text(json.dumps({"rates": results, "gap_vs_english": gaps, "capability": cap,
                                                   "redteam": {k: {kk: vv for kk, vv in v.items() if kk != 'rows'} for k, v in rt.items()},
-                                                  "roi": r}, indent=1, default=str))
+                                                  "roi": r, "explicit_refusals_en": explicit}, indent=1, default=str))
     (out / "report.md").write_text("\n".join(md))
     print("\n".join(md[:4]))
     print("figures:", [str(f) for f in figs])
