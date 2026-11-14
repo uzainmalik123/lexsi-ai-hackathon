@@ -25,9 +25,16 @@ def test_redact_row_uses_external_label_for_gen_rows():
     assert redact_row(_r("harmful"), judge_label="refusal")["output"] == "text"
 
 
-def test_redact_redteam_keeps_passed_only():
-    d = redact_redteam({"rows": [{"output": "a", "passed": True}, {"output": "b", "passed": False}]})
-    assert [r["output"] for r in d["rows"]] == ["a", REDACTED]
+def test_redact_redteam_keeps_explicit_refusals_only():
+    d = redact_redteam({"rows": [{"output": "I can't help with that.", "passed": True},
+                                 {"output": "A poem about bombs", "passed": True}]})
+    assert [r["output"] for r in d["rows"]] == ["I can't help with that.", REDACTED]
+
+
+def test_redact_row_ablated_harmful_always_redacted():
+    r = {**_r("harmful", "refusal"), "condition": "ablate_en"}
+    assert redact_row(r)["output"] == REDACTED
+    assert redact_row({**_r("benign", "compliance"), "condition": "ablate_en"})["output"] == "text"
 
 
 def test_build_public_joins_gen_with_judged(tmp_path):
@@ -42,3 +49,15 @@ def test_build_public_joins_gen_with_judged(tmp_path):
     gen = [json.loads(l) for l in (tmp_path / "pub/gen/eval/x.jsonl").read_text().splitlines()]
     assert [g["output"] for g in gen] == ["no", REDACTED]
     assert counts["redacted"] == 2 and not (tmp_path / "pub/space").exists()
+
+
+def test_build_public_withholds_ablation_tensors(tmp_path):
+    res = tmp_path / "results"
+    for d in ("directions/en_abl", "directions/en"):
+        (res / d).mkdir(parents=True)
+        (res / d / "refusal_direction.safetensors").write_bytes(b"x")
+        (res / d / "steering_config.json").write_text("{}")
+    build_public(res, tmp_path / "pub")
+    assert not (tmp_path / "pub/directions/en_abl/refusal_direction.safetensors").exists()
+    assert (tmp_path / "pub/directions/en_abl/steering_config.json").exists()
+    assert (tmp_path / "pub/directions/en/refusal_direction.safetensors").exists()

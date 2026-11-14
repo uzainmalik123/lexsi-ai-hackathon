@@ -12,7 +12,28 @@ steering). Solo entry.
 
 ## Results
 
-_Filled in from `results/report/report.md` once the final runs are judged._
+Full write-up: [`writeup/article.md`](writeup/article.md). Full tables: `results/report/report.md`.
+
+- **No large multilingual gap in the base model.** Tiny Aya refuses 83–93% of harmful prompts in the nine
+  headline languages and 73–80% in Bengali, Swahili, Vietnamese and Korean; harmful compliance is 0–5%
+  everywhere.
+- **Positive steering (layer 24) buys little.** +2.4 points of refusal for +4.3 points of over-refusal
+  (English direction), +1.7 for +2.0 (multilingual direction). Belebele accuracy unchanged.
+- **One direction carries refusal in every language.** Ablating the layer-19 direction, found by an
+  Arditi-style layer sweep, cuts explicit English refusals from 82% to 10% (en direction) and 7% (multi
+  direction), and lowers judged refusal by 12–35 points in all 14 languages, including five that neither
+  direction was extracted from. Capability (Belebele, 76% mean) is unchanged. The English and multilingual
+  directions have cosine 0.96.
+- **Measurement caveats we found:** the 9B judge counts soft redirects (and harmful answers cut off at 96
+  tokens) as refusals, so it understates the ablation effect; AuditKIT's built-in red-team detectors are
+  canary-based and score every condition at 83%.
+
+| mean over 9 headline languages | base | steer en | steer multi | ablate en (L19) | ablate multi (L19) |
+|---|---|---|---|---|---|
+| refusal on harmful (judge) | 87.2% | 89.6% | 88.9% | 67.6% | 61.9% |
+| explicit refusals, English (substring) | 82% | 87% | 85% | 10% | 7% |
+| over-refusal on benign | 14.1% | 18.4% | 16.1% | 14.0% | 13.9% |
+| Belebele accuracy (10 languages) | 76% | 76% | 76% | 76% | 76% |
 
 ## Where the Lexsi repos are used
 
@@ -53,7 +74,7 @@ for everything that touches Tiny Aya. Seeds are fixed (`20261112`) everywhere.
 ```bash
 uv venv --python 3.12 .venv && source .venv/bin/activate
 uv pip install -e ".[local]"
-pytest                                                     # 54 tests, ~2 s
+pytest                                                     # 68 tests, ~2 s
 
 # 1. benchmark (downloads the three sources; translation ≈ 100 min on an RTX 2060 Super)
 python -m ayasteer.curate --out data/benchmark --raw data/raw
@@ -77,7 +98,10 @@ python -m ayasteer.judge spotcheck --in results/judged/eval/base.jsonl --langs e
 python -m ayasteer.report select --judged-dev results/judged/dev --out results/report/selected_strengths.json
 ```
 
-**GPU notebook, cell 7** with the selected strengths: final conditions, Belebele, red-team probes, push.
+**GPU notebooks** (Kaggle: import, GPU T4 + Internet + `HF_TOKEN` secret, Save & Run All):
+`notebooks/kaggle_final.ipynb` runs the steered and layer-24 ablated eval conditions, Belebele and the
+red-team probes; `notebooks/kaggle_ablate.ipynb` runs the layer sweep (`python -m ayasteer.gpu layer-sweep`)
+and the layer-19 ablations. Both push to HF after every step and resume from there.
 
 ```bash
 # 4. judge the final conditions, build the report, publish
@@ -92,9 +116,13 @@ and in the write-up.
 ## Limitations
 
 - The judge is a local 9B model, not a human. We report its agreement with and without the English
-  parallel prompt per language, and a 20-row human check in English and Urdu.
+  parallel prompt per language (96% mean) and a 40-row human check in English and Urdu (87.5% on refusal
+  vs not). It is lenient on ablated outputs; see the write-up.
+- Generation is capped at 96 new tokens, and n = 60 harmful prompts per language.
 - XSTest and the Urdu slices are machine-translated.
 - Steering strength is chosen on a separate dev split, but by the same judge.
+- The public runs dataset redacts the text of every harmful-prompt output the judge did not label a
+  refusal (labels kept), so no harmful completions are redistributed.
 - MultiJail-only languages have no benign prompts, so no over-refusal number there.
 
 ## Licences
