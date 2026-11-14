@@ -9,7 +9,9 @@ import logging
 from pathlib import Path
 
 from ayasteer.judge.rubric import RUBRIC, SYSTEM
-from ayasteer.publish.hf import REPOS, create_collection, publish_dataset, publish_model, publish_space
+from ayasteer.publish.hf import (REPOS, create_collection, publish_dataset, publish_model, publish_redacted_runs,
+                                 publish_space)
+from ayasteer.publish.redact import build_public
 from ayasteer.publish.space import build_space
 
 CARDS = Path("cards")
@@ -29,7 +31,10 @@ def do_benchmark(args) -> str:
 
 
 def do_runs(args) -> str:
-    return publish_dataset(REPOS["runs"], Path("results"), CARDS / "dataset_runs.md", rubric=RUBRIC, rubric_system=SYSTEM)
+    public = Path("build/public_runs")
+    counts = build_public(Path("results"), public)
+    logging.info("public runs copy: %s", counts)
+    return publish_redacted_runs(REPOS["runs"], public, CARDS / "dataset_runs.md", rubric=RUBRIC, rubric_system=SYSTEM)
 
 
 def do_models(args) -> list[str]:

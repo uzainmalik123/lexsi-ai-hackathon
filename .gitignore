@@ -7,3 +7,4 @@ data/raw/
 results/
 .hf_cache/
 *.log
+build/

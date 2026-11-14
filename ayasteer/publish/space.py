@@ -10,9 +10,11 @@ import shutil
 from collections import defaultdict
 from pathlib import Path
 
+from ayasteer.publish.redact import redact_row
 from ayasteer.schema import HEADLINE, LANG_NAME, SECONDARY_MULTIJAIL, TRANSLATED, read_jsonl
 
-ORDER = ["base", "steer_en", "steer_multi", "ablate"]
+# Ablated outputs are not replayed (they are the harmful completions); their rates are in the report tables.
+ORDER = ["base", "steer_en", "steer_multi"]
 COND_LABEL = {"base": "Base (as shipped)", "steer_en": "Steered (English direction)",
               "steer_multi": "Steered (multilingual direction)", "ablate": "Ablated (direction removed)"}
 
@@ -31,6 +33,7 @@ def collect(results_dir: Path) -> dict:
             base = rows.setdefault(key, {"id": r["id"], "source": r["source"], "language": r["language"],
                                          "label": r["label"], "prompt": r["prompt"], "en_prompt": r["en_prompt"],
                                          "outputs": {}})
+            r = redact_row(r)
             base["outputs"][cond] = {"output": r.get("output", ""), "judge_label": r.get("judge_label", "unknown"),
                                      "strength": r.get("strength", 0.0)}
     langs_present = {r["language"] for r in rows.values()}

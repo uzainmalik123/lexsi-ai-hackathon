@@ -39,6 +39,20 @@ def publish_dataset(repo_id: str, local_dir: Path, card_path: Path, token: str |
     return f"https://huggingface.co/datasets/{repo_id}"
 
 
+def publish_redacted_runs(repo_id: str, public_dir: Path, card_path: Path, token: str | None = None, **card_vars) -> str:
+    """Replace ``results/`` in the (private) runs repo with the redacted copy, squash the history so the
+    raw outputs Kaggle pushed are not reachable from any commit, and only then make the repo public."""
+    api = _api(token)
+    api.create_repo(repo_id, repo_type="dataset", private=True, exist_ok=True)
+    api.upload_folder(repo_id=repo_id, repo_type="dataset", folder_path=str(public_dir), path_in_repo="results",
+                      delete_patterns=["*"], commit_message="redacted public copy of results")
+    api.upload_file(path_or_fileobj=_render_card(card_path, **card_vars).encode("utf-8"), path_in_repo="README.md",
+                    repo_id=repo_id, repo_type="dataset", commit_message="dataset card")
+    api.super_squash_history(repo_id=repo_id, repo_type="dataset", commit_message="redacted results")
+    api.update_repo_settings(repo_id, repo_type="dataset", private=False)
+    return f"https://huggingface.co/datasets/{repo_id}"
+
+
 def publish_model(repo_id: str, direction_dir: Path, card_path: Path, token: str | None = None, **card_vars) -> str:
     api = _api(token)
     api.create_repo(repo_id, repo_type="model", private=False, exist_ok=True)
