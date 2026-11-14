@@ -36,7 +36,9 @@ def split_validation(contrast_en: list[dict], dev: list[dict], n_val: int = 24) 
     for label in val:
         rows = [r for r in contrast_en if r["label"] == label][:n_val]
         val[label] = [r["en_prompt"] for r in rows]
-        val[label] += [r["en_prompt"] for r in dev if r["label"] == label and r["en_prompt"] not in val[label]]
+        for r in dev:  # each dev prompt appears once per language; keep its English parallel once
+            if r["label"] == label and r["en_prompt"] not in val[label]:
+                val[label].append(r["en_prompt"])
     held = set(val["harmful"]) | set(val["benign"])
     return val["harmful"], val["benign"], held
 

@@ -30,7 +30,7 @@ def _row(i, label, en):
 
 def test_split_validation_holds_out_contrast_head_and_dev():
     contrast = [_row(f"h{i}", "harmful", f"H{i}") for i in range(4)] + [_row(f"b{i}", "benign", f"B{i}") for i in range(4)]
-    dev = [_row("d1", "harmful", "DH"), _row("d2", "benign", "DB"), _row("d3", "harmful", "H0")]
+    dev = [_row("d1", "harmful", "DH"), _row("d1", "harmful", "DH"), _row("d2", "benign", "DB"), _row("d3", "harmful", "H0")]
     vh, vb, held = split_validation(contrast, dev, n_val=2)
     assert vh == ["H0", "H1", "DH"] and vb == ["B0", "B1", "DB"]
     assert held == {"H0", "H1", "DH", "B0", "B1", "DB"}
