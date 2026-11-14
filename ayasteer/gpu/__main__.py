@@ -5,6 +5,7 @@
     python -m ayasteer.gpu sweep     --split dev --variants en,multi --strengths 0.5,1,2,4
     python -m ayasteer.gpu capability --conditions base,steer_en:1.0 --langs en,hi
     python -m ayasteer.gpu redteam    --conditions base,steer_en:1.0
+    python -m ayasteer.gpu layer-sweep --variants en,multi
     python -m ayasteer.gpu push      --repo USER/REPO --path results
 """
 from __future__ import annotations
@@ -91,6 +92,66 @@ def cmd_sweep(args: argparse.Namespace) -> None:
                                               batch_size=args.batch_size)}))
 
 
+# Which saved direction each condition uses (under --directions-dir).
+DIRECTION_FOR = {"steer_en": "en", "steer_multi": "multi", "ablate": "en", "ablate_en": "en_abl", "ablate_multi": "multi_abl"}
+
+
+def _load_dirs(directions_dir: str, conditions: list[tuple[str, float]]) -> dict:
+    from ayasteer.gpu.direction import load_direction
+
+    names = {DIRECTION_FOR[c] for c, _ in conditions if c != "base"}
+    return {n: load_direction(Path(directions_dir) / n)[0] for n in names}
+
+
+def cmd_layer_sweep(args: argparse.Namespace) -> None:
+    """Pick the ablation layer on the en direction, then save en_abl / multi_abl at that layer."""
+    ensure_restored()
+    out_dir = Path(args.directions_dir)
+    report = out_dir / "layer_sweep.json"
+    if report.exists() and all((out_dir / f"{v}_abl" / "steering_config.json").exists() for v in args.variants.split(",")):
+        print(report.read_text()); return
+    from ayasteer.gpu.direction import save_direction
+    from ayasteer.gpu.layersweep import all_layer_directions, pick_layer, score_layers, split_validation
+    from ayasteer.gpu.model import load_tiny_aya
+
+    model, tok = load_tiny_aya(args.model)
+    n_layers = int(model.config.num_hidden_layers)
+    layers = list(range(int(n_layers * 0.2), int(n_layers * 0.8)))
+    if args.smoke:  # plumbing check on a small model: two layers, a few prompts, no bypass required
+        layers = layers[len(layers) // 2: len(layers) // 2 + 2]
+    val_h, val_b, held = split_validation(list(read_jsonl(BENCH / "contrast_en.jsonl")),
+                                          list(read_jsonl(BENCH / "dev.jsonl")), n_val=args.n_val)
+    if args.smoke:
+        val_h, val_b = val_h[:8], val_b[:8]
+    result: dict = {"n_layers": n_layers, "candidate_layers": layers, "n_val_harmful": len(val_h),
+                    "n_val_harmless": len(val_b), "variants": {}}
+    fits, dirs = {}, {}
+    for v in args.variants.split(","):
+        fits[v] = [r for r in read_jsonl(BENCH / f"contrast_{v}.jsonl") if r["en_prompt"] not in held]
+        dirs[v] = all_layer_directions(model, tok, fits[v])
+        baseline, table = score_layers(model, tok, dirs[v], val_h, val_b, layers, args.max_new_tokens)
+        result["variants"][v] = {"baseline_refusal": baseline, "table": table, "n_fit": len(fits[v]),
+                                 "best": pick_layer(table, baseline)}
+    best = result["variants"]["en"]["best"]
+    if best is None and args.smoke:
+        best = result["variants"]["en"]["table"][0]
+    if best is None:
+        raise SystemExit("no layer removes refusal: " + json.dumps(result["variants"]["en"]["table"]))
+    layer = best["layer"]
+    result["selected_layer"] = layer
+    import torch
+    for v in dirs:
+        result["variants"][v]["cosine_en_at_layer"] = float(torch.dot(dirs[v][layer], dirs["en"][layer]))
+        meta = {"layer": layer, "n_harmful": sum(r["label"] == "harmful" for r in fits[v]),
+                "n_harmless": sum(r["label"] == "benign" for r in fits[v]), "pool_method": "last_token",
+                "sweep_used": True, "hidden_dim": int(dirs[v][layer].shape[0]), "n_layers": n_layers}
+        save_direction(dirs[v][layer], meta, out_dir / f"{v}_abl", model_id=args.model,
+                       contrast_rows=fits[v], variant=v)
+    report.write_text(json.dumps(result, indent=1))
+    print(json.dumps({k: result[k] for k in ("selected_layer", "n_val_harmful")} |
+                     {v: {"baseline": r["baseline_refusal"], "best": r["best"]} for v, r in result["variants"].items()}))
+
+
 def _parse_conditions(spec: str) -> list[tuple[str, float]]:
     out = []
     for item in spec.split(","):
@@ -102,14 +163,13 @@ def _parse_conditions(spec: str) -> list[tuple[str, float]]:
 def cmd_capability(args: argparse.Namespace) -> None:
     ensure_restored()
     from ayasteer.gpu.capability import run_capability
-    from ayasteer.gpu.direction import load_direction
     from ayasteer.gpu.model import load_tiny_aya
 
+    conds = _parse_conditions(args.conditions)
+    dirs = _load_dirs(args.directions_dir, conds)
     model, tok = load_tiny_aya(args.model)
-    dirs = {v: load_direction(Path(args.directions_dir) / v)[0] for v in ("en", "multi")
-            if (Path(args.directions_dir) / v).exists()}
-    for cond, s in _parse_conditions(args.conditions):
-        direction = None if cond == "base" else dirs["en" if cond in ("ablate", "steer_en") else "multi"]
+    for cond, s in conds:
+        direction = None if cond == "base" else dirs[DIRECTION_FOR[cond]]
         out = Path(args.out_dir) / f"{cond}_s{s:g}.json"
         print(json.dumps(run_capability(model, tok, args.langs.split(","), cond, s, direction, out,
                                         n_per_lang=args.n_per_lang)))
@@ -117,15 +177,14 @@ def cmd_capability(args: argparse.Namespace) -> None:
 
 def cmd_redteam(args: argparse.Namespace) -> None:
     ensure_restored()
-    from ayasteer.gpu.direction import load_direction
     from ayasteer.gpu.model import load_tiny_aya
     from ayasteer.gpu.redteam import run_redteam
 
+    conds = _parse_conditions(args.conditions)
+    dirs = _load_dirs(args.directions_dir, conds)
     model, tok = load_tiny_aya(args.model)
-    dirs = {v: load_direction(Path(args.directions_dir) / v)[0] for v in ("en", "multi")
-            if (Path(args.directions_dir) / v).exists()}
-    for cond, s in _parse_conditions(args.conditions):
-        direction = None if cond == "base" else dirs["en" if cond in ("ablate", "steer_en") else "multi"]
+    for cond, s in conds:
+        direction = None if cond == "base" else dirs[DIRECTION_FOR[cond]]
         out = Path(args.out_dir) / f"{cond}_s{s:g}.json"
         print(json.dumps(run_redteam(model, tok, cond, s, direction, out)))
 
@@ -151,7 +210,7 @@ def main() -> None:
 
     p = sub.add_parser("generate"); _add_model_arg(p)
     p.add_argument("--split", default="eval")
-    p.add_argument("--condition", choices=["base", "steer_en", "steer_multi", "ablate"], required=True)
+    p.add_argument("--condition", choices=["base", "steer_en", "steer_multi", "ablate", "ablate_en", "ablate_multi"], required=True)
     p.add_argument("--strength", type=float, default=1.0)
     p.add_argument("--direction", default=None)
     p.add_argument("--out", required=True)
@@ -183,6 +242,14 @@ def main() -> None:
     p.add_argument("--directions-dir", default="results/directions")
     p.add_argument("--out-dir", default="results/redteam")
     p.set_defaults(fn=cmd_redteam)
+
+    p = sub.add_parser("layer-sweep"); _add_model_arg(p)
+    p.add_argument("--variants", default="en,multi")
+    p.add_argument("--directions-dir", default="results/directions")
+    p.add_argument("--n-val", type=int, default=24)
+    p.add_argument("--max-new-tokens", type=int, default=32)
+    p.add_argument("--smoke", action="store_true", help="two layers, 8 prompts, never fails on bypass")
+    p.set_defaults(fn=cmd_layer_sweep)
 
     p = sub.add_parser("push")
     p.add_argument("--repo", required=True)

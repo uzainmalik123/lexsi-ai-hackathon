@@ -11,7 +11,8 @@ from ayasteer.schema import append_jsonl
 
 log = logging.getLogger(__name__)
 
-MODE_FOR_CONDITION = {"base": "base", "steer_en": "steer", "steer_multi": "steer", "ablate": "ablate"}
+MODE_FOR_CONDITION = {"base": "base", "steer_en": "steer", "steer_multi": "steer", "ablate": "ablate",
+                      "ablate_en": "ablate", "ablate_multi": "ablate"}
 
 
 def run_condition(model, tok, rows: list[dict], condition: str, strength: float, direction, out_path: Path,

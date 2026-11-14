@@ -6,7 +6,7 @@ from typing import Iterator
 
 from ayasteer.schema import read_jsonl
 
-CONDITIONS = ("base", "steer_en", "steer_multi", "ablate")
+CONDITIONS = ("base", "steer_en", "steer_multi", "ablate", "ablate_en", "ablate_multi")
 
 RESULT_FIELDS = ("id", "source", "language", "label", "prompt", "en_prompt")
 

@@ -52,7 +52,7 @@ def cmd_build(args):
     out = Path(args.out); out.mkdir(parents=True, exist_ok=True)
     judged = Path(args.judged) / "eval"
     results = {}
-    for cond in ("base", "steer_en", "steer_multi", "ablate"):
+    for cond in ("base", "steer_en", "steer_multi", "ablate", "ablate_en", "ablate_multi"):
         p = judged / f"{cond}.jsonl"
         if p.exists():
             results[cond] = rates(read_jsonl(p))

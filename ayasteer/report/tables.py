@@ -5,14 +5,15 @@ import math
 
 from ayasteer.schema import HEADLINE, LANG_NAME, SECONDARY_MULTIJAIL, TRANSLATED
 
-COND_LABEL = {"base": "base", "steer_en": "steer (en dir)", "steer_multi": "steer (multi dir)", "ablate": "ablated"}
+COND_LABEL = {"base": "base", "steer_en": "steer (en dir)", "steer_multi": "steer (multi dir)", "ablate": "ablated (L24)",
+             "ablate_en": "ablated (en dir)", "ablate_multi": "ablated (multi dir)"}
 
 
 def _pct(x: float) -> str:
     return "–" if x is None or (isinstance(x, float) and math.isnan(x)) else f"{100 * x:.0f}%"
 
 
-def headline_table(results: dict[str, dict[str, dict]], conds=("base", "steer_en", "steer_multi", "ablate")) -> str:
+def headline_table(results: dict[str, dict[str, dict]], conds=("base", "steer_en", "steer_multi", "ablate", "ablate_en", "ablate_multi")) -> str:
     """results[condition][lang] -> rates dict."""
     conds = [c for c in conds if c in results]
     head = "| Language | " + " | ".join(f"refusal on harmful ({COND_LABEL[c]})" for c in conds) + \
@@ -33,7 +34,7 @@ def headline_table(results: dict[str, dict[str, dict]], conds=("base", "steer_en
     return "\n".join(lines)
 
 
-def secondary_table(results: dict[str, dict[str, dict]], conds=("base", "steer_en", "steer_multi", "ablate")) -> str:
+def secondary_table(results: dict[str, dict[str, dict]], conds=("base", "steer_en", "steer_multi", "ablate", "ablate_en", "ablate_multi")) -> str:
     conds = [c for c in conds if c in results]
     lines = ["| Language | source | " + " | ".join(f"harmful compliance ({COND_LABEL[c]})" for c in conds) +
              " | " + " | ".join(f"over-refusal ({COND_LABEL[c]})" for c in conds) + " |",

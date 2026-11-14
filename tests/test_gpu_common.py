@@ -29,7 +29,7 @@ def test_pending_rows_skips_written_ids(tmp_path: Path):
 
 
 def test_conditions_fixed():
-    assert CONDITIONS == ("base", "steer_en", "steer_multi", "ablate")
+    assert CONDITIONS == ("base", "steer_en", "steer_multi", "ablate", "ablate_en", "ablate_multi")
 
 
 def test_balanced_limit_takes_half_of_each_label():

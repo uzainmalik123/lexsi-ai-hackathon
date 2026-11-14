@@ -6,8 +6,10 @@ from pathlib import Path
 
 from ayasteer.schema import HEADLINE, LANG_NAME
 
-SERIES = {"base": "#2a78d6", "steer_en": "#eb6834", "steer_multi": "#1baf7a", "ablate": "#eda100"}
-LABEL = {"base": "base", "steer_en": "steer (en direction)", "steer_multi": "steer (multi direction)", "ablate": "ablated"}
+SERIES = {"base": "#2a78d6", "steer_en": "#eb6834", "steer_multi": "#1baf7a", "ablate": "#898781",
+          "ablate_en": "#eda100", "ablate_multi": "#8f5bd6"}
+LABEL = {"base": "base", "steer_en": "steer (en direction)", "steer_multi": "steer (multi direction)", "ablate": "ablated (layer 24)",
+         "ablate_en": "ablated (en direction)", "ablate_multi": "ablated (multi direction)"}
 SURFACE, INK, INK2, MUTED, GRID, BASELINE = "#fcfcfb", "#0b0b0b", "#52514e", "#898781", "#e1e0d9", "#c3c2b7"
 
 
@@ -42,7 +44,7 @@ def sweep_figure(sweep: dict[tuple[str, float], dict], base: dict, out: Path) ->
     fig, axes = plt.subplots(1, len(variants), figsize=(4.6 * len(variants), 3.8), dpi=160, facecolor=SURFACE,
                              sharey=True, squeeze=False)
     metrics = [("harmful_refusal", SERIES["base"], "refusal on harmful"),
-               ("harmful_compliance", SERIES["ablate"], "harmful compliance"),
+               ("harmful_compliance", SERIES["ablate_en"], "harmful compliance"),
                ("over_refusal", SERIES["steer_en"], "over-refusal (benign)"),
                ("benign_incoherent", SERIES["steer_multi"], "incoherent (benign)")]
     for ax, v in zip(axes[0], variants):
